@@ -1,0 +1,15 @@
+{
+  "name": "minecraft-modding",
+  "displayName": "Minecraft Modding (Forge · NeoForge · Fabric · Quilt)",
+  "version": "1.0.0",
+  "description": "Skills y subagentes para crear y portar mods de Minecraft 1.20.1–1.21.11 en Forge, NeoForge, Fabric y Quilt, con pixel art 16x16 y modelado 3D en Blockbench.",
+  "author": {
+    "name": "HCuadrado428",
+    "email": "287645584+HCuadrado428@users.noreply.github.com",
+    "url": "https://github.com/HCuadrado428"
+  },
+  "homepage": "https://github.com/HCuadrado428/Modding-better-",
+  "repository": "https://github.com/HCuadrado428/Modding-better-",
+  "license": "MIT",
+  "keywords": ["minecraft", "modding", "forge", "neoforge", "fabric", "quilt", "blockbench", "pixel-art", "mixin"]
+}
