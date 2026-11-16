@@ -10,6 +10,9 @@ Script: `python3 "${CLAUDE_PLUGIN_ROOT}/skills/pixel-art-16x16/scripts/texgen.py
 Ejemplo completo: `${CLAUDE_PLUGIN_ROOT}/skills/pixel-art-16x16/examples/ruby.json`.
 Guarda las previews en una carpeta temporal del proyecto (p. ej. `build/tex-preview/`), no dentro de `src/`.
 
+## Resolución del proyecto
+Muchos mods no usan 16×16. **Antes de dibujar, mira las texturas existentes de la misma carpeta** (o lo que diga el `CLAUDE.md`) y usa esa resolución: `texgen.py` admite cualquier tamaño (`"size": [32, 32]` y 32 filas de 32 caracteres). A 32×32 o más, todo lo de abajo sigue valiendo; solo cambia el número de filas/columnas y se permiten algunos colores más (≤ 32).
+
 ## Flujo obligatorio
 1. **Referencia**: si hay una textura vanilla parecida (lingote, gema, mineral…), conviértela en texto con `inspect` para copiar proporciones y estilo. Las texturas vanilla están en el jar del cliente (`assets/minecraft/textures/`); NO las copies al mod, solo úsalas de referencia.
 2. **Paleta**: `ramp "#colorbase" 4` → 3-5 tonos con desplazamiento de tono. Añade un contorno oscuro (no negro puro) y, como mucho, 1 brillo.

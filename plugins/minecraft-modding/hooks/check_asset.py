@@ -71,16 +71,15 @@ def check_png(abs_path, kind_path, rep):
         return
     pow2 = lambda n: n > 0 and (n & (n - 1)) == 0  # noqa: E731
     if kind_path.startswith(("textures/item/", "textures/block/")):
-        if w % 16 or not pow2(w):
-            rep.error(f"Textura de item/bloque de {w}x{h}: el ancho debe ser 16, 32, 64… (potencia de 2, múltiplo de 16).")
-        elif h != w:
-            if h % w == 0:
-                if not os.path.exists(abs_path + ".mcmeta"):
-                    rep.warn(f"{h // w} frames apilados: falta {os.path.basename(abs_path)}.mcmeta para animarla.")
-            else:
-                rep.error(f"Textura {w}x{h}: debe ser cuadrada o una tira vertical de frames (alto múltiplo del ancho).")
-    elif not (pow2(w) and pow2(h)):
-        rep.warn(f"Textura {w}x{h}: se recomienda que ancho y alto sean potencias de 2.")
+        if not pow2(w) or w < 16 or not (pow2(h) or h % w == 0):
+            rep.error(f"Textura de item/bloque de {w}x{h}: el ancho debe ser potencia de 2 (16, 32, 64…) y el alto "
+                      "potencia de 2 o múltiplo del ancho (tira de animación).")
+        elif h > w and h % w == 0 and not os.path.exists(abs_path + ".mcmeta"):
+            rep.warn(f"{w}x{h} ({h // w} cuadros apilados): si es una animación falta {os.path.basename(abs_path)}.mcmeta; "
+                     "si es la textura UV de un modelo 3D o de GeckoLib, ignora este aviso.")
+    elif kind_path.startswith("textures/entity/") and not (pow2(w) and pow2(h)):
+        # (los iconos de efecto son 18x18 y las GUI tienen tamaños libres: solo se avisa en entidades)
+        rep.warn(f"Textura de entidad {w}x{h}: se recomienda que ancho y alto sean potencias de 2.")
     if img.mode not in ("RGBA", "LA", "P", "RGB", "L"):
         rep.warn(f"Modo de color poco habitual: {img.mode}. Usa RGBA.")
 
@@ -161,7 +160,39 @@ def check_json(abs_path, top, ns, rest, root, rep):
                     rep.error(f"Valores de lang que no son texto: {', '.join(bad[:5])}")
 
 
-def check_data_dirs(rest, rep):
+def project_mc_versions(resources_root):
+    """Versiones de Minecraft del proyecto: gradle.properties (minecraft_version) y versions/dependencies/*.properties."""
+    d = os.path.abspath(resources_root)
+    for _ in range(6):
+        if any(os.path.exists(os.path.join(d, f)) for f in ("build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts")):
+            break
+        parent = os.path.dirname(d)
+        if parent == d:
+            return []
+        d = parent
+    else:
+        return []
+    versions = []
+    files = [os.path.join(d, "gradle.properties")]
+    dep_dir = os.path.join(d, "versions", "dependencies")
+    if os.path.isdir(dep_dir):
+        files += [os.path.join(dep_dir, f) for f in os.listdir(dep_dir) if f.endswith(".properties")]
+    for fp in files:
+        try:
+            with open(fp, encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    m = re.match(r"\s*minecraft_version\s*=\s*([0-9][0-9.]*)", line)
+                    if m:
+                        versions.append(tuple(int(x) for x in m.group(1).strip(".").split(".")))
+        except OSError:
+            pass
+    return versions
+
+
+def check_data_dirs(rest, rep, resources_root):
+    versions = project_mc_versions(resources_root)
+    if versions and all(v < (1, 21) for v in versions):
+        return  # proyecto solo < 1.21: el plural es lo correcto
     for plural, singular in PLURAL_DATA_DIRS.items():
         if rest.startswith(plural + "/"):
             rep.warn(
@@ -203,7 +234,7 @@ def main():
         except Exception as e:  # noqa: BLE001
             rep.error(f".mcmeta no es JSON válido: {e}")
     if top == "data":
-        check_data_dirs(rest, rep)
+        check_data_dirs(rest, rep, root)
 
     name = f"{top}/{rel}"
     if rep.errors:

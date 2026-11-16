@@ -12,6 +12,7 @@ HOOK = os.path.join(PLUGIN, "hooks", "check_asset.py")
 TEXGEN = os.path.join(PLUGIN, "skills", "pixel-art-16x16", "scripts", "texgen.py")
 EXAMPLE = os.path.join(PLUGIN, "skills", "pixel-art-16x16", "examples", "ruby.json")
 NEW_MOD = os.path.join(PLUGIN, "skills", "mc-new", "scripts", "new_mod.py")
+EXPORT = os.path.join(PLUGIN, "skills", "mc-cloud-setup", "scripts", "export_to_repo.py")
 
 
 def run_hook(path):
@@ -85,10 +86,25 @@ class HookTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("20x20", err)
 
+    def test_rectangular_uv_texture_is_ok(self):
+        from PIL import Image
+        path = os.path.join(self.res, "assets/mymod/textures/block/jaula.png")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        Image.new("RGBA", (1024, 512)).save(path)
+        self.assertEqual(run_hook(path)[0], 0)
+
     def test_plural_data_folder_is_warning(self):
         code, out, _ = run_hook(self.write("data/mymod/tags/blocks/ores.json", '{"values": []}'))
         self.assertEqual(code, 0)
         self.assertIn("tags/block", out)
+
+    def test_plural_data_folder_ok_for_1_20_project(self):
+        with open(os.path.join(self.tmp.name, "build.gradle"), "w") as f:
+            f.write("// forge")
+        with open(os.path.join(self.tmp.name, "gradle.properties"), "w") as f:
+            f.write("minecraft_version=1.20.1\n")
+        code, out, err = run_hook(self.write("data/mymod/loot_tables/blocks/x.json", '{"pools": []}'))
+        self.assertEqual((code, out, err), (0, "", ""))
 
     def test_lang_non_string_is_error(self):
         code, _, _ = run_hook(self.write("assets/mymod/lang/es_es.json", '{"a": 1}'))
@@ -122,6 +138,37 @@ class TexgenTests(unittest.TestCase):
     def test_ramp(self):
         p = subprocess.run([sys.executable, TEXGEN, "ramp", "#336699", "5"], check=True, capture_output=True, text=True)
         self.assertEqual(len(json.loads(p.stdout)), 5)
+
+
+class ExportTests(unittest.TestCase):
+    def test_export_rewrites_paths_and_detects_repos(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with open(os.path.join(tmp, "build.gradle"), "w") as f:
+                f.write("plugins { id 'net.minecraftforge.gradle' version '6.0' }\n"
+                        "java.toolchain.languageVersion = JavaLanguageVersion.of(17)\n"
+                        "repositories { maven { url = 'https://maven.example.dev/' } }\n")
+            os.makedirs(os.path.join(tmp, ".claude"))
+            with open(os.path.join(tmp, ".claude", "settings.json"), "w") as f:
+                json.dump({"permissions": {"allow": ["Bash(ls:*)"]}}, f)
+            for _ in range(2):  # dos veces: no debe duplicar el hook
+                subprocess.run([sys.executable, EXPORT, "--dest", tmp], check=True, capture_output=True)
+            with open(os.path.join(tmp, ".claude", "settings.json")) as f:
+                settings = json.load(f)
+            self.assertEqual(settings["permissions"]["allow"], ["Bash(ls:*)"])
+            self.assertEqual(len(settings["hooks"]["PostToolUse"]), 1)
+            self.assertFalse(os.path.exists(os.path.join(tmp, ".claude", "skills", "mc-new")))
+            for root, _, files in os.walk(os.path.join(tmp, ".claude")):
+                for fn in files:
+                    if fn.endswith(".md") and "cloud" not in root:
+                        with open(os.path.join(root, fn), encoding="utf-8") as f:
+                            txt = f.read()
+                        self.assertNotIn("${CLAUDE_PLUGIN_ROOT}", txt, fn)
+                        self.assertNotIn("minecraft-modding:", txt, fn)
+            with open(os.path.join(tmp, ".claude", "cloud", "README.md"), encoding="utf-8") as f:
+                cloud = f.read()
+            self.assertIn("maven.example.dev", cloud)
+            self.assertIn("maven.minecraftforge.net", cloud)
+            self.assertIn("openjdk-17-jdk-headless", cloud)
 
 
 class NewModTests(unittest.TestCase):

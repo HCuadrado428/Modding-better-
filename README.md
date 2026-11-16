@@ -15,6 +15,7 @@ Plugin para **Claude Code** que convierte a Claude en un equipo de modding de Mi
 | Comando | `/minecraft-modding:mc-new` | Crea un mod nuevo multiloader y multiversión desde la plantilla incluida |
 | Comando | `/minecraft-modding:mc-init` | Crea el `CLAUDE.md` de tu proyecto detectando modid, versiones y loaders |
 | Comando | `/minecraft-modding:mc-doctor` | Comprueba Java, Python, Pillow, Git, Blockbench y Aseprite |
+| Comando | `/minecraft-modding:mc-cloud-setup` | Copia el plugin al repo de tu mod para usarlo en la web y la app |
 | Skill | `version-matrix` | Cambios que rompen código entre 1.20.1 y 1.21.11 |
 | Skill | `fabric-modding` · `neoforge-modding` · `forge-modding` | Cómo se hace cada cosa en cada loader |
 | Skill | `mixins` | Buenas prácticas de Mixins multiloader |
@@ -188,6 +189,27 @@ Ejemplos de peticiones:
 
 ---
 
+## Usarlo en la web (claude.ai/code) y en la app
+
+Las sesiones de Claude Code en la nube (web, pestaña **Code** de la app, `claude --cloud`) **no instalan plugins**, pero sí cargan lo que hay en el repositorio: `CLAUDE.md` y la carpeta `.claude/`. Tienes dos opciones:
+
+**A · Remote Control (todo funciona, incluido Blockbench y `runClient`).** Abre Claude Code en tu PC, dentro del mod, escribe `/remote-control` y maneja la sesión desde el móvil o el navegador. El PC tiene que estar encendido.
+
+**B · Copiar el plugin al repo del mod (funciona sin el PC).**
+
+1. En tu PC, dentro del repo del mod, con el plugin instalado: `/minecraft-modding:mc-cloud-setup`
+   - Copia skills, subagentes y el hook a `.claude/` (con las rutas corregidas) y crea o amplía el `CLAUDE.md`.
+   - Genera `.claude/cloud/README.md` con los dominios Maven que usa tu `build.gradle` y un setup script con la versión de Java que necesita el mod.
+2. Haz commit y push.
+3. En claude.ai/code configura el entorno **una vez** siguiendo `.claude/cloud/README.md`:
+   - **Network access → Custom** con esos dominios, marcando *"Also include default list"*.
+   - Pega el **setup script** en su campo.
+4. Crea sesiones de ese repo con ese entorno, desde la web o desde la app.
+
+En la nube funcionan la compilación, el datagen, los GameTests en servidor, las skills, los subagentes, el hook y `texgen.py`. No funcionan `runClient` (no hay pantalla) ni Blockbench o Aseprite (están en tu PC).
+
+Para actualizar el repo cuando salga otra versión del plugin, vuelve a ejecutar `/minecraft-modding:mc-cloud-setup` y haz commit.
+
 ## Actualizar y desinstalar
 
 ```bash
@@ -220,7 +242,7 @@ plugins/minecraft-modding/
   .mcp.json                              ← conexión con Blockbench
   hooks/                                 ← validación automática de recursos
   agents/                                ← 6 subagentes
-  skills/                                ← 18 skills (incluidas mc-new, mc-init y mc-doctor)
+  skills/                                ← 19 skills (incluidas mc-new, mc-init, mc-doctor y mc-cloud-setup)
   templates/CLAUDE.md                    ← plantilla de CLAUDE.md para tu proyecto
   templates/mod/                         ← plantilla de proyecto Stonecraft (compilada en CI)
 tests/                                   ← tests de los scripts y del hook
