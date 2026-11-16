@@ -25,8 +25,8 @@
 
 ## Reglas de oro
 1. **Nunca inventes una API.** Antes de usar una clase/método, compruébalo en las fuentes decompiladas de ESA versión (`./gradlew genSources` en Fabric; las fuentes de NeoForge/Forge se adjuntan en el IDE) o en la doc oficial.
-2. Consulta la skill `minecraft-modding:version-matrix` antes de escribir código que dependa de la versión.
-3. Un cambio no está terminado hasta que `./gradlew build` pasa en **todos** los targets afectados.
+2. Consulta la skill `minecraft-modding:version-matrix` antes de escribir código que dependa de la versión, y la skill temática que toque (`worldgen`, `datagen`, `gui-screens`, `networking`, `geckolib`, `mod-config`, `gametests`, `publishing`).
+3. Un cambio no está terminado hasta que `./gradlew buildAndCollect` pasa en **todos** los targets. Gradle se ejecuta con Java 25.
 4. Lógica nueva → en `common/`. Si necesitas algo del loader, crea una interfaz en `common/` e impleméntala en cada loader.
 5. Texturas: 16×16 PNG RGBA, revisa siempre la preview ampliada antes de darla por buena.
 6. Delega en los subagentes del plugin: compilación rota → `minecraft-modding:build-fixer`; portar → `minecraft-modding:mod-porter`; mixins → `minecraft-modding:mixin-reviewer`; dudas de API → `minecraft-modding:api-researcher`; texturas → `minecraft-modding:texture-artist`; modelos 3D → `minecraft-modding:model-artist`.

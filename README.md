@@ -12,6 +12,7 @@ Plugin para **Claude Code** que convierte a Claude en un equipo de modding de Mi
 
 | Tipo | Nombre | Para qué sirve |
 |---|---|---|
+| Comando | `/minecraft-modding:mc-new` | Crea un mod nuevo multiloader y multiversión desde la plantilla incluida |
 | Comando | `/minecraft-modding:mc-init` | Crea el `CLAUDE.md` de tu proyecto detectando modid, versiones y loaders |
 | Comando | `/minecraft-modding:mc-doctor` | Comprueba Java, Python, Pillow, Git, Blockbench y Aseprite |
 | Skill | `version-matrix` | Cambios que rompen código entre 1.20.1 y 1.21.11 |
@@ -19,13 +20,38 @@ Plugin para **Claude Code** que convierte a Claude en un equipo de modding de Mi
 | Skill | `mixins` | Buenas prácticas de Mixins multiloader |
 | Skill | `pixel-art-16x16` | Dibujar, revisar, validar y recolorear texturas (script `texgen.py`) |
 | Skill | `blockbench-models` | Modelos de bloques, items y entidades |
+| Skill | `worldgen` | Minerales, features, biome modifiers y estructuras |
+| Skill | `datagen` | Generar modelos, recetas, tags, loot y traducciones por código |
+| Skill | `gui-screens` | Pantallas y menús con inventario |
+| Skill | `networking` | Paquetes cliente-servidor en cada loader y versión |
+| Skill | `geckolib` | Entidades, bloques e items animados con GeckoLib 4/5 |
+| Skill | `mod-config` | Ficheros y pantallas de configuración |
+| Skill | `gametests` | Tests automáticos dentro del juego (incluido el sistema de 1.21.5+) |
+| Skill | `publishing` | Publicar en Modrinth y CurseForge con GitHub Actions |
 | Subagente | `build-fixer` | Arregla builds rotos hasta que compilen |
 | Subagente | `mod-porter` | Porta mods entre loaders y versiones |
 | Subagente | `mixin-reviewer` | Revisa mixins (solo lectura) |
 | Subagente | `api-researcher` | Verifica APIs en las fuentes y la doc oficial |
 | Subagente | `texture-artist` | Texturas pixel art |
 | Subagente | `model-artist` | Modelos 3D con Blockbench |
+| Hook | Validación automática | Cada PNG o JSON de recursos que Claude escribe se revisa al momento (ver abajo) |
 | MCP | `blockbench` | Conexión con Blockbench (se activa cuando Blockbench está abierto) |
+| Plantilla | `templates/mod` | Proyecto Stonecraft para 1.20.1 / 1.21.1 / 1.21.11 con Fabric, Forge y NeoForge, compilado en CI |
+
+### Validación automática (hook)
+
+Cada vez que Claude crea o edita un fichero dentro de `assets/` o `data/`, el plugin lo revisa sin que tengas que pedirlo:
+
+| Comprobación | Resultado si falla |
+|---|---|
+| Ruta con mayúsculas o caracteres no válidos | Error: Claude debe corregirlo |
+| JSON mal formado, valores de `lang` que no son texto | Error |
+| Textura de item/bloque que no mide 16, 32, 64… o tira de animación sin `.mcmeta` | Error / aviso |
+| Modelo con cubos fuera de -16…32 o rotaciones no estándar | Error / aviso |
+| Modelo, blockstate o definición de item que apunta a una textura/modelo que no existe | Aviso |
+| Carpetas de `data/` en plural (`tags/blocks`, `recipes`…) que en 1.21+ van en singular | Aviso |
+
+Necesita Python (y Pillow para las imágenes). Si no hay Python, el hook no hace nada y no molesta.
 
 Claude carga las skills solo cuando las necesita y delega en los subagentes de forma automática. También puedes pedírselo tú: *"usa el subagente mixin-reviewer"*.
 
@@ -39,7 +65,7 @@ Claude carga las skills solo cuando las necesita y delega en los subagentes de f
 |---|---|---|
 | **Claude Code** | Sí | https://code.claude.com/docs (sigue la guía de instalación) |
 | **Git** | Sí | https://git-scm.com/downloads |
-| **Java 21** (Temurin) | Sí | https://adoptium.net/ · Para 1.20.1–1.20.4 hace falta Java 17 (Gradle puede descargarlo solo) |
+| **Java 25** (Temurin) | Sí | https://adoptium.net/ · Ejecuta Gradle en la plantilla. Los targets compilan con Java 21 (1.20.5+) y 17 (1.20.1); instálalos también o deja que Gradle los descargue |
 | **Python 3** + **Pillow** | Sí, para las texturas | https://www.python.org/downloads/ (en Windows marca *"Add python.exe to PATH"*) |
 | **IntelliJ IDEA** Community + plugin *Minecraft Development* | Recomendado | https://www.jetbrains.com/idea/ |
 | **Blockbench** (escritorio) | Recomendado, para 3D | https://www.blockbench.net/ |
@@ -107,12 +133,26 @@ Sin Aseprite, el plugin dibuja igualmente con su script incluido.
 
 ### Paso 5 · Crear el proyecto del mod
 
-El plugin funciona mejor con un proyecto **multiloader + multiversión**:
+Abre una terminal en la carpeta donde guardas tus proyectos, arranca `claude` y escribe:
 
-- **Stonecraft** (Stonecutter + Architectury; Fabric, Forge y NeoForge): https://stonecraft.meza.gg/
-- o cualquier *MultiLoader-Template* con Stonecutter.
+```
+/minecraft-modding:mc-new rubymod
+```
 
-Versiones ancla recomendadas:
+Claude te pedirá nombre, paquete, autor y descripción, y creará la carpeta `rubymod/` con un proyecto **multiloader + multiversión** (Stonecraft + Stonecutter) ya preparado: un ítem de ejemplo con textura, CI de GitHub y publicación en Modrinth/CurseForge.
+
+Primer build (tarda varios minutos porque descarga Minecraft para cada target):
+
+```bash
+cd rubymod
+./gradlew buildAndCollect        # Windows: gradlew.bat buildAndCollect
+```
+
+Los `.jar` aparecen en `build/libs/`. Para abrirlo en IntelliJ IDEA: *File → Open* → la carpeta del proyecto.
+
+¿Prefieres otra base? También puedes usar el generador web de Stonecraft (https://stonecraft.meza.gg/) o un *MultiLoader-Template*; el resto del plugin funciona igual.
+
+Versiones de la plantilla:
 
 | Minecraft | Loaders | Java |
 |---|---|---|
@@ -124,7 +164,7 @@ Quilt: el jar de Fabric funciona en Quilt Loader, así que no necesita un módul
 
 ### Paso 6 · Preparar el proyecto para Claude
 
-Abre una terminal **en la carpeta del proyecto**, arranca `claude` y ejecuta:
+Abre una terminal **en la carpeta del proyecto** (`cd rubymod`), arranca `claude` y ejecuta:
 
 ```
 /minecraft-modding:mc-init
@@ -142,6 +182,9 @@ Ejemplos de peticiones:
 - *"El build de 1.21.11-fabric falla, arréglalo"*
 - *"Haz la textura de una espada de rubí estilo vanilla"*
 - *"Modela en Blockbench una mesa de trabajo de 16×12×16"*
+- *"Haz que el mineral de rubí aparezca entre las capas -32 y 48"*
+- *"Crea una máquina con inventario de 1 entrada y 1 salida y su pantalla"*
+- *"Prepara la publicación en Modrinth y CurseForge"*
 
 ---
 
@@ -164,6 +207,9 @@ Reinicia Claude Code (o usa `/reload-plugins`) después de actualizar.
 | `No module named PIL` | Instala Pillow (paso 1) |
 | `blockbench` desconectado en `/mcp` | Abre Blockbench de escritorio con el plugin MCP cargado y comprueba el puerto 3000 |
 | Claude inventa métodos que no existen | Pídele que use el subagente `api-researcher` y añade el caso a la skill correspondiente |
+| `Dependency requires at least JVM runtime version 25` | Gradle se está ejecutando con Java 21 o anterior: instala Java 25 y ponlo en `JAVA_HOME` (o en IntelliJ: *Settings → Gradle → Gradle JVM*) |
+| El primer build tarda mucho | Normal: descarga y prepara Minecraft para los 6 targets. Los siguientes van mucho más rápido |
+| Un aviso del hook que no aplica a tu versión | Los avisos de carpetas plural/singular dependen del target: si tu mod solo es para 1.20.1, ignóralo |
 
 ## Estructura del repositorio
 
@@ -172,9 +218,13 @@ Reinicia Claude Code (o usa `/reload-plugins`) después de actualizar.
 plugins/minecraft-modding/
   .claude-plugin/plugin.json             ← manifiesto del plugin
   .mcp.json                              ← conexión con Blockbench
+  hooks/                                 ← validación automática de recursos
   agents/                                ← 6 subagentes
-  skills/                                ← 9 skills (incluidas mc-init y mc-doctor)
-  templates/CLAUDE.md                    ← plantilla para tu proyecto
+  skills/                                ← 18 skills (incluidas mc-new, mc-init y mc-doctor)
+  templates/CLAUDE.md                    ← plantilla de CLAUDE.md para tu proyecto
+  templates/mod/                         ← plantilla de proyecto Stonecraft (compilada en CI)
+tests/                                   ← tests de los scripts y del hook
+.github/workflows/ci.yml                 ← valida el plugin, pasa los tests y compila la plantilla
 ```
 
 ## Desarrollo del plugin
@@ -182,6 +232,7 @@ plugins/minecraft-modding/
 ```bash
 git clone https://github.com/HCuadrado428/Modding-better-
 claude plugin validate ./Modding-better-
+python -m unittest discover -s Modding-better-/tests   # tests de scripts y hook
 claude --plugin-dir ./Modding-better-/plugins/minecraft-modding   # probar sin instalar
 ```
 

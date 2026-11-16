@@ -11,6 +11,7 @@ PLUGIN = os.path.join(ROOT, "plugins", "minecraft-modding")
 HOOK = os.path.join(PLUGIN, "hooks", "check_asset.py")
 TEXGEN = os.path.join(PLUGIN, "skills", "pixel-art-16x16", "scripts", "texgen.py")
 EXAMPLE = os.path.join(PLUGIN, "skills", "pixel-art-16x16", "examples", "ruby.json")
+NEW_MOD = os.path.join(PLUGIN, "skills", "mc-new", "scripts", "new_mod.py")
 
 
 def run_hook(path):
@@ -121,6 +122,31 @@ class TexgenTests(unittest.TestCase):
     def test_ramp(self):
         p = subprocess.run([sys.executable, TEXGEN, "ramp", "#336699", "5"], check=True, capture_output=True, text=True)
         self.assertEqual(len(json.loads(p.stdout)), 5)
+
+
+class NewModTests(unittest.TestCase):
+    def test_generates_renamed_project(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = os.path.join(tmp, "rubymod")
+            subprocess.run([sys.executable, NEW_MOD, "--modid", "rubymod", "--name", "Ruby Mod", "--group",
+                            "io.github.test", "--author", "Tester", "--dest", dest], check=True, capture_output=True)
+            main = os.path.join(dest, "src/main/java/io/github/test/rubymod/RubyMod.java")
+            self.assertTrue(os.path.exists(main))
+            self.assertTrue(os.path.isdir(os.path.join(dest, "src/main/resources/assets/rubymod")))
+            leftovers = []
+            for root, _, files in os.walk(dest):
+                for fn in files:
+                    if fn.endswith((".java", ".json", ".toml", ".kts", ".properties")):
+                        with open(os.path.join(root, fn), encoding="utf-8") as f:
+                            if "examplemod" in f.read().lower():
+                                leftovers.append(fn)
+            self.assertEqual(leftovers, [])
+
+    def test_rejects_bad_modid(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = subprocess.run([sys.executable, NEW_MOD, "--modid", "Bad-Id", "--name", "X", "--group", "a.b",
+                                "--dest", os.path.join(tmp, "x")], capture_output=True, text=True)
+            self.assertNotEqual(p.returncode, 0)
 
 
 if __name__ == "__main__":

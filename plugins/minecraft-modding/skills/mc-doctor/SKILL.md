@@ -1,6 +1,6 @@
 ---
 name: mc-doctor
-description: Comprueba que el equipo tiene todo lo necesario para el plugin minecraft-modding (Java 17/21, Python + Pillow, Git, Blockbench MCP, Aseprite MCP) y explica cómo arreglar lo que falte. Usar cuando el usuario ejecute /minecraft-modding:mc-doctor o algo del plugin no funcione.
+description: Comprueba que el equipo tiene todo lo necesario para el plugin minecraft-modding (Java 25/21/17, Python + Pillow, Git, Blockbench MCP, Aseprite MCP) y explica cómo arreglar lo que falte. Usar cuando el usuario ejecute /minecraft-modding:mc-doctor o algo del plugin no funcione.
 disable-model-invocation: true
 ---
 
@@ -13,7 +13,7 @@ disable-model-invocation: true
    - `aseprite` (opcional).
 3. Presenta una tabla: componente · estado (OK / falta / opcional) · cómo arreglarlo.
    Arreglos habituales:
-   - Java 21: https://adoptium.net/ (Temurin 21). Java 17 solo hace falta para 1.20.1–1.20.4; Gradle puede descargarlo solo con toolchains.
+   - Java 25: https://adoptium.net/ (Temurin 25) para ejecutar Gradle con la plantilla (Stonecraft). Java 21 y 17 los usan los targets (1.20.5+ y 1.20.1); Gradle puede descargarlos solo con toolchains, o instálalos también.
    - Pillow: `python3 -m pip install pillow` (Windows: `py -m pip install pillow`).
    - Blockbench: https://www.blockbench.net/ → File → Plugins → Load Plugin from URL → `https://jasonjgardner.github.io/blockbench-mcp-plugin/mcp.js`.
    - Aseprite MCP (opcional): https://github.com/diivi/aseprite-mcp

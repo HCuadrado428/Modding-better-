@@ -55,11 +55,15 @@ def main():
 
     jv = java_versions()
     if not jv:
-        line("FALTA", "Java", "instala Temurin 21 (https://adoptium.net/)")
+        line("FALTA", "Java", "instala Temurin 25 (https://adoptium.net/)")
     else:
         for path, major in jv.items():
-            ok = major >= 21
-            line("OK" if ok else "AVISO", f"Java {major}", path + ("" if ok else " · 1.20.5+ necesita Java 21"))
+            if major >= 25:
+                line("OK", f"Java {major}", path)
+            elif major >= 21:
+                line("AVISO", f"Java {major}", path + " · la plantilla (Stonecraft) necesita Java 25 para ejecutar Gradle")
+            else:
+                line("AVISO", f"Java {major}", path + " · instala Java 25 para Gradle; 1.20.5+ compila con Java 21")
 
     try:
         import PIL  # noqa: F401
