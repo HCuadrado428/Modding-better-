@@ -2,7 +2,7 @@
 
 Plugin para **Claude Code** que convierte a Claude en un equipo de modding de Minecraft:
 
-- **Versiones:** 1.20.1 → 1.21.11
+- **Versiones:** conocimiento de 1.20.1 → 1.21.11 (la plantilla genera jars para 1.20.1, 1.21–1.21.1 y 1.21.11; se pueden añadir targets intermedios)
 - **Loaders:** Forge · NeoForge · Fabric · Quilt
 - **Arte:** pixel art 16×16 (incluido, sin instalar nada más) y modelado 3D con **Blockbench**; **Aseprite** opcional
 
@@ -155,11 +155,28 @@ Los `.jar` aparecen en `build/libs/`. Para abrirlo en IntelliJ IDEA: *File → O
 
 Versiones de la plantilla:
 
-| Minecraft | Loaders | Java |
-|---|---|---|
-| 1.20.1 | Forge, Fabric | 17 |
-| 1.21.1 | NeoForge, Fabric | 21 |
-| 1.21.11 | NeoForge, Fabric (Forge opcional) | 21 |
+| Target | Jar válido en | Loaders | Java |
+|---|---|---|---|
+| 1.20.1 | 1.20.1 | Forge, Fabric | 17 |
+| 1.21.1 | 1.21 – 1.21.1 | NeoForge, Fabric | 21 |
+| 1.21.11 | 1.21.11 | NeoForge, Fabric (Forge opcional) | 21 |
+
+Cada jar declara en sus metadatos **solo** las versiones de Minecraft que soporta (`mc_range_fabric` / `mc_range_forge` en `versions/dependencies/<versión>.properties`). Así, si alguien lo instala en otra versión, el loader muestra un aviso de versión incompatible en vez de crashear. Las versiones intermedias (1.20.2–1.20.6, 1.21.2–1.21.10) **no** tienen jar hasta que añadas su target:
+
+<details>
+<summary>Añadir un target intermedio (p. ej. 1.21.4)</summary>
+
+1. En `settings.gradle.kts`, añade la línea: `mc("1.21.4", "fabric", "neoforge")`.
+2. Crea `versions/dependencies/1.21.4.properties` copiando el de la versión más cercana y actualiza `minecraft_version`, `fabric_version` y `neoforge_version` (o `forge_version`) con las versiones publicadas para ese Minecraft.
+3. Declara el rango con límite superior, sin solaparlo con otros targets:
+   ```properties
+   mc_range_fabric=1.21.4
+   mc_range_forge=[1.21.4,1.21.5)
+   ```
+   Si el mismo jar sirve para varias versiones sin cambios (p. ej. 1.21.4 y 1.21.5 no rompen tu código), amplía el rango: `>=1.21.4 <1.21.6` / `[1.21.4,1.21.6)`.
+4. Si el código necesita cambios para esa versión, usa comentarios de Stonecutter (`//? if >=1.21.4 {`) o `replacements` en `build.gradle.kts`; la skill `version-matrix` lista qué cambia en cada versión.
+5. `./gradlew buildAndCollect` y prueba el jar nuevo con `runClient`.
+</details>
 
 Quilt: el jar de Fabric funciona en Quilt Loader, así que no necesita un módulo propio.
 

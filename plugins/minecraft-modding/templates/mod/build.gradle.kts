@@ -16,6 +16,9 @@ modSettings {
     variableReplacements =
         mapOf(
             "minecraftVersionVirtual" to stonecutter.current.version,
+            // Rango de Minecraft con límite superior (versions/dependencies/<versión>.properties)
+            "mcRangeFabric" to project.mod.prop("mc_range_fabric"),
+            "mcRangeForge" to project.mod.prop("mc_range_forge"),
             "forgeLoaderVersion" to
                 if (project.mod.isForge) {
                     project.mod

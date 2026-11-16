@@ -29,6 +29,6 @@ Script: `python3 "${CLAUDE_PLUGIN_ROOT}/skills/mc-new/scripts/new_mod.py"` (en W
 5. Recuerda que el primer build descarga Minecraft para cada target y tarda varios minutos.
 
 ## Qué incluye el proyecto
-- Targets: 1.20.1 (Fabric, Forge), 1.21.1 (Fabric, NeoForge), 1.21.11 (Fabric, NeoForge). Se cambian en `settings.gradle.kts` + `versions/dependencies/*.properties`.
+- Targets: 1.20.1 (Fabric, Forge), 1.21.1 (Fabric, NeoForge; jar válido en 1.21–1.21.1), 1.21.11 (Fabric, NeoForge). Se cambian en `settings.gradle.kts` + `versions/dependencies/*.properties`. Cada `.properties` define `mc_range_fabric` y `mc_range_forge`: el rango de Minecraft que declara el jar, **siempre con límite superior** (nunca `>=x` ni `[x,)`), para que el loader avise de versión incompatible en vez de crashear. Al añadir un target, añade también estas dos claves.
 - Item de ejemplo "ruby" con textura, modelo, definición de item (1.21.4+) y traducciones en/es: muestra los cambios `ResourceLocation`→`Identifier` y `setId` (1.21.2+).
 - `.github/workflows/build.yml`: compila en cada push y publica en Modrinth/CurseForge al crear una Release (ver skill `minecraft-modding:publishing`).
