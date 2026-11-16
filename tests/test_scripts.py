@@ -1,6 +1,7 @@
 """Tests de los scripts del plugin (hook de validación y texgen). Ejecutar: python -m unittest discover -s tests"""
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -194,6 +195,73 @@ class NewModTests(unittest.TestCase):
             p = subprocess.run([sys.executable, NEW_MOD, "--modid", "Bad-Id", "--name", "X", "--group", "a.b",
                                 "--dest", os.path.join(tmp, "x")], capture_output=True, text=True)
             self.assertNotEqual(p.returncode, 0)
+
+
+class TemplateVersionRangeTests(unittest.TestCase):
+    """Cada jar debe declarar un rango de Minecraft con límite superior: sin él, el loader lo carga
+    en versiones que no soporta y el juego crashea en vez de mostrar 'versión incompatible'."""
+
+    TEMPLATE = os.path.join(PLUGIN, "templates", "mod")
+    RES = os.path.join(TEMPLATE, "src", "main", "resources")
+    DEPS = os.path.join(TEMPLATE, "versions", "dependencies")
+
+    @staticmethod
+    def vt(v):
+        return tuple(int(x) for x in v.split("."))
+
+    def assert_bounded_fabric(self, rng, where):
+        rng = rng.strip()
+        if re.fullmatch(r"[0-9][0-9.]*", rng) or rng.startswith("~"):
+            return  # versión exacta o ~x.y.z (mismo parche)
+        self.assertIn("<", rng, f"{where}: rango Fabric sin límite superior: {rng!r}")
+
+    def assert_bounded_forge(self, rng, where):
+        m = re.fullmatch(r"\s*[\[(]\s*([^,\])]*)\s*,\s*([^\])]*?)\s*[\])]\s*", rng)
+        if m is None:
+            self.assertRegex(rng, r"^\[[^,\]]+\]$", f"{where}: rango Maven no válido: {rng!r}")
+            return
+        self.assertTrue(m.group(2), f"{where}: rango Forge/NeoForge sin límite superior: {rng!r}")
+
+    def test_metadata_does_not_use_open_minecraft_range(self):
+        with open(os.path.join(self.RES, "fabric.mod.json"), encoding="utf-8") as f:
+            mc = json.load(f)["depends"]["minecraft"]
+        if "${" not in mc:
+            self.assert_bounded_fabric(mc, "fabric.mod.json")
+        else:
+            self.assertNotRegex(mc, r">=\s*\$\{", "fabric.mod.json: usa '>=${...}' (rango abierto)")
+        for toml in ("mods.toml", "neoforge.mods.toml"):
+            with open(os.path.join(self.RES, "META-INF", toml), encoding="utf-8") as f:
+                text = f.read()
+            blocks = re.split(r"(?m)^\[\[", text)
+            mc_blocks = [b for b in blocks if re.search(r'(?m)^modId\s*=\s*"minecraft"', b)]
+            self.assertEqual(len(mc_blocks), 1, f"{toml}: falta la dependencia de minecraft")
+            rng = re.search(r'(?m)^versionRange\s*=\s*"([^"]*)"', mc_blocks[0]).group(1)
+            if "${" in rng:
+                self.assertNotRegex(rng, r",\s*\)$", f"{toml}: rango abierto {rng!r}")
+            else:
+                self.assert_bounded_forge(rng, toml)
+
+    def test_every_version_declares_bounded_ranges(self):
+        files = sorted(f for f in os.listdir(self.DEPS) if f.endswith(".properties"))
+        self.assertTrue(files)
+        for fn in files:
+            props = {}
+            with open(os.path.join(self.DEPS, fn), encoding="utf-8") as f:
+                for line in f:
+                    if "=" in line and not line.lstrip().startswith("#"):
+                        k, v = line.split("=", 1)
+                        props[k.strip()] = v.strip()
+            for key in ("minecraft_version", "mc_range_fabric", "mc_range_forge"):
+                self.assertIn(key, props, f"{fn}: falta {key}")
+            self.assert_bounded_fabric(props["mc_range_fabric"], fn)
+            self.assert_bounded_forge(props["mc_range_forge"], fn)
+            # El rango Forge debe incluir la propia versión del target.
+            m = re.fullmatch(r"([\[(])([^,]*),([^\])]*)([\])])", props["mc_range_forge"].replace(" ", ""))
+            if m:
+                v = self.vt(props["minecraft_version"])
+                lo, hi = self.vt(m.group(2)), self.vt(m.group(3))
+                self.assertTrue(lo < v or (lo == v and m.group(1) == "["), f"{fn}: {v} queda fuera del rango")
+                self.assertTrue(v < hi or (v == hi and m.group(4) == "]"), f"{fn}: {v} queda fuera del rango")
 
 
 if __name__ == "__main__":

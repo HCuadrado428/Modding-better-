@@ -55,6 +55,26 @@ jobs:
           ./gradlew buildAndCollect --stacktrace
       - name: Comprobar jars
         run: ls -la build/libs/ && test "$(ls build/libs/*.jar | grep -v sources | wc -l)" -ge 6
+      - name: Comprobar rango de Minecraft en los metadatos de cada jar
+        shell: python
+        run: |
+          import glob, json, re, sys, zipfile
+          bad = 0
+          for jar in sorted(j for j in glob.glob("build/libs/*.jar") if "sources" not in j):
+              with zipfile.ZipFile(jar) as z:
+                  names = set(z.namelist())
+                  if "fabric.mod.json" in names:
+                      rng = json.loads(z.read("fabric.mod.json"))["depends"]["minecraft"]
+                      ok = "<" in rng or re.fullmatch(r"~?[0-9][0-9.]*", rng)
+                  else:
+                      toml = next(n for n in ("META-INF/neoforge.mods.toml", "META-INF/mods.toml") if n in names)
+                      text = z.read(toml).decode()
+                      block = next(b for b in text.split("[[") if re.search(r'(?m)^modId\s*=\s*"minecraft"', b))
+                      rng = re.search(r'(?m)^versionRange\s*=\s*"([^"]*)"', block).group(1)
+                      ok = not re.search(r",\s*\)$", rng) and "$" not in rng
+              print(f"{'OK ' if ok else 'MAL'}  {jar}: minecraft {rng}")
+              bad += not ok
+          sys.exit(1 if bad else 0)
       - uses: actions/upload-artifact@v4
         if: always()
         with:

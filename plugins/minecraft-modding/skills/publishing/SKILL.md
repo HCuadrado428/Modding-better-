@@ -24,6 +24,7 @@ curseforge { if (mod.isFabric) requires("fabric-api") }
 ```
 Si un jar sirve para más versiones (p. ej. 1.21.1 también vale para 1.21), añade en `versions/dependencies/<v>.properties`:
 `additional_versions=1.21`
+Mantén coherente el rango de los metadatos del jar (`mc_range_fabric` / `mc_range_forge` en el mismo fichero): las versiones que anuncias en Modrinth/CurseForge deben estar dentro de ese rango.
 
 ## Publicar
 1. Sube `mod.version` en `gradle.properties` (versionado semántico: 1.2.0).
@@ -36,7 +37,7 @@ Para probar sin publicar: `./gradlew publishMods` en local **sin** `DO_PUBLISH` 
 ## Checklist antes de publicar
 - [ ] `./gradlew buildAndCollect` verde en todos los targets
 - [ ] Probado en cliente **y** en servidor dedicado (`runServer`) en al menos una versión por loader
-- [ ] Dependencias correctas en `fabric.mod.json` / `mods.toml` / `neoforge.mods.toml`
+- [ ] Dependencias correctas en `fabric.mod.json` / `mods.toml` / `neoforge.mods.toml` (rango de Minecraft con límite superior)
 - [ ] Icono, descripción y licencia
 - [ ] Changelog escrito
 - [ ] Versión subida (Modrinth rechaza versiones repetidas)
