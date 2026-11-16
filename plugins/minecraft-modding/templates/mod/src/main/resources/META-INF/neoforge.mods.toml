@@ -1,0 +1,21 @@
+modLoader = "javafml"
+loaderVersion = "*"
+license = "MIT"
+
+[[mods]]
+modId = "${id}"
+version = "${version}"
+displayName = "${name}"
+authors = "ExampleAuthor"
+description = '''
+${description}
+'''
+logoFile = "assets/${id}/icon.png"
+logoBlur = false
+
+[[dependencies.${id}]]
+modId = "minecraft"
+type = "required"
+versionRange = "[${minecraftVersionVirtual},)"
+ordering = "NONE"
+side = "BOTH"
